@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Cantine — Menus{% endblock %}
+{% block content %}
+
+<style>
+  /* Layout famille — surcharge du CSS de base pour un rendu lisible
+     sur mobile (la famille ouvre cette page sur le téléphone). */
+  .family-header {
+    display: flex; flex-wrap: wrap; align-items: end; gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  .family-header hgroup { margin: 0; }
+  .family-header select,
+  .family-header input[type=number] { margin: 0; }
+  .day-card {
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    background: var(--pico-background-color);
+  }
+  .day-card.today { border-color: var(--pico-primary, #1095c1); border-width: 2px; }
+  .day-card.weekend { background: var(--pico-card-background-color, #f8f8f8); }
+  .day-card .day-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: var(--pico-h1-color);
+  }
+  .day-card .day-head .badge-today {
+    font-size: 0.7em; padding: 0.15rem 0.5rem;
+    border-radius: 1rem; background: var(--pico-primary, #1095c1);
+    color: white; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .day-card pre {
+    margin: 0; padding: 0; background: transparent; color: inherit;
+    font-family: var(--pico-font-family); font-size: 1em;
+    line-height: 1.5; white-space: pre-wrap;
+  }
+  .day-card .llm-badge {
+    font-size: 0.7em; opacity: 0.5; margin-left: 0.5rem;
+  }
+  .empty-msg {
+    text-align: center; padding: 2rem;
+    color: var(--pico-muted-color);
+  }
+  .window-bar {
+    font-size: 0.85em; opacity: 0.7; margin-bottom: 1rem;
+    text-align: right;
+  }
+</style>
+
+<hgroup>
+  <h1>🍽 Menus de la semaine</h1>
+  <p>Cantine pour <strong>{{ selected.child_name or "—" }}</strong> —
+     fenêtre {{ days_param }} jours.</p>
+</hgroup>
+
+{% include "_status.html" %}
+
+<form method="get" action="menus" class="family-header">
+  <label>Enfant
+    <select name="family" onchange="this.form.submit()">
+      {% for c in children %}
+        <option value="{{ c.child_id }}"
+                {% if c.child_id == selected.child_id %}selected{% endif %}>
+          {{ c.child_name }}
+        </option>
+      {% endfor %}
+      {% if not children %}
+        <option value="">(aucun menu en cache — lancer un sync)</option>
+      {% endif %}
+    </select>
+  </label>
+  <label>Jours affichés
+    <select name="days" onchange="this.form.submit()">
+      {% for n in days_options %}
+        <option value="{{ n }}" {% if n == days_param %}selected{% endif %}>{{ n }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <noscript>
+    <button type="submit">Appliquer</button>
+  </noscript>
+</form>
+
+<p class="window-bar">Du <strong>{{ window_start }}</strong> au <strong>{{ window_end }}</strong></p>
+
+{% if not selected.visible_days %}
+  <article class="empty-msg">
+    <p><strong>Aucun menu à afficher.</strong></p>
+    <p>Lance un sync depuis le tableau de bord pour récupérer les menus
+       depuis So-Happy, puis reviens ici.</p>
+  </article>
+{% else %}
+  {% for d in selected.visible_days %}
+    <article class="day-card {{ 'today' if d.is_today }} {{ 'weekend' if d.is_weekend }}">
+      <div class="day-head">
+        <span>{{ d.pretty_date }}</span>
+        {% if d.is_today %}<span class="badge-today">Aujourd'hui</span>{% endif %}
+      </div>
+      <pre>{{ d.summary }}</pre>
+      {% if d.llm_source %}
+        {% if d.llm_source == "llm" %}
+          <small class="llm-badge">— formaté par LLM</small>
+        {% else %}
+          <small class="llm-badge">— format local (LLM indisponible)</small>
+        {% endif %}
+      {% endif %}
+    </article>
+  {% endfor %}
+{% endif %}
+
+<p style="margin-top:2rem; opacity:0.6; font-size:0.85em; text-align:center;">
+  HA - Menu {{ version }} —
+  <a href="./" style="color:inherit;">Tableau de bord</a>
+</p>
+
+{% endblock %}

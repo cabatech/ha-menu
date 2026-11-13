@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="{{ request.headers.get('x-ingress-path', '') }}/">
+  <title>{% block title %}HA - Menu{% endblock %}</title>
+  <link rel="stylesheet" href="static/pico.min.css" />
+  <link rel="stylesheet" href="static/app.css" />
+  <script src="static/htmx.min.js" defer></script>
+  <script src="static/json-enc.js" defer></script>
+</head>
+<body>
+  <header class="container topbar">
+    <nav>
+      <ul>
+        <li><a href="./" hx-boost="true"><strong>HA - Menu</strong></a></li>
+      </ul>
+      <ul>
+        <li><a href="./" hx-boost="true">Tableau de bord</a></li>
+        <li><a href="menus" hx-boost="true">Menus</a></li>
+        <li><a href="settings?tab=credentials" hx-boost="true">Identifiants So-Happy</a></li>
+        <li><a href="settings?tab=children" hx-boost="true">Enfants & agendas</a></li>
+        <li><a href="settings?tab=configuration" hx-boost="true">Configuration</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="container">
+    <small>HA - Menu v{{ version|default('0.1.0') }} — {% if sohappy_configured is defined %}So-Happy{% if sohappy_configured %} ✓{% else %} ⚠{% endif %}{% endif %}</small>
+  </footer>
+</body>
+</html>

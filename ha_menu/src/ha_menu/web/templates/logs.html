@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}HA - Menu — Logs{% endblock %}
+{% block content %}
+
+<hgroup>
+  <h1>Logs (v{{ version }})</h1>
+  <p>Dernière fenêtre de <strong>{{ lines|length }}</strong> lignes (max
+     demandé : {{ lines_requested }}). Auto-refresh 5 s.</p>
+</hgroup>
+
+{% include "_status.html" %}
+
+<article>
+  <header>
+    <strong>Sortie live</strong>
+    <small style="float:right; margin-top:0.3rem">
+      <a href="logs?lines=200">200</a> ·
+      <a href="logs?lines=500">500</a> ·
+      <a href="logs?lines=1000">1k</a> ·
+      <a href="api/logs?lines=2000" target="_blank">JSON brut</a>
+    </small>
+  </header>
+  <pre
+       id="log-stream"
+       hx-get="partials/logs?lines={{ lines_requested }}"
+       hx-trigger="every 5s"
+       hx-swap="innerHTML"
+       style="max-height:70vh; overflow:auto; font-size:0.85em;
+              background:var(--pico-code-background-color,#1e1e1e);
+              color:var(--pico-color-white,bisque); padding:0.75rem;
+              border-radius:0.25rem;"
+  >{% for ln in lines %}{{ ln }}
+{% endfor %}</pre>
+</article>
+
+{% endblock %}

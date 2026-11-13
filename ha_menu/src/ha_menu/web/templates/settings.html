@@ -1,0 +1,488 @@
+{% extends "base.html" %}
+{% block title %}HA - Menu — Paramètres{% endblock %}
+{% block content %}
+
+<hgroup>
+  <h1>Paramètres</h1>
+  <p>Gérez les identifiants So-Happy, les enfants et la configuration de sync.</p>
+</hgroup>
+
+{% include "_status.html" %}
+
+<nav>
+  <ul role="tablist">
+    <li>
+      <a href="settings?tab=credentials" role="tab"
+         {% if tab == 'credentials' %}aria-selected="true"{% endif %}>
+        Identifiants So-Happy
+      </a>
+    </li>
+    <li>
+      <a href="settings?tab=children" role="tab"
+         {% if tab == 'children' %}aria-selected="true"{% endif %}>
+        Enfants & agendas
+      </a>
+    </li>
+    <li>
+      <a href="settings?tab=llm" role="tab"
+         {% if tab == 'llm' %}aria-selected="true"{% endif %}>
+        Menu IA (LLM)
+      </a>
+    </li>
+    <li>
+      <a href="settings?tab=mqtt" role="tab"
+         {% if tab == 'mqtt' %}aria-selected="true"{% endif %}>
+        Home Assistant (MQTT)
+      </a>
+    </li>
+    <li>
+      <a href="settings?tab=configuration" role="tab"
+         {% if tab == 'configuration' %}aria-selected="true"{% endif %}>
+        Configuration
+      </a>
+    </li>
+  </ul>
+</nav>
+
+{# ---------------------------------------------------------------- #}
+{% if tab == 'credentials' %}
+<article>
+  <header><strong>Identifiants So-Happy</strong></header>
+  <form id="form-sohappy" hx-post="api/sohappy" hx-ext="json-enc" hx-swap="none"
+        hx-on:htmx:after-request="if(event.detail.successful){setTimeout(()=>location.reload(),600)}"
+        onsubmit="return false">
+    <label>Email
+      <input type="email" name="email" id="sohappy-email" value="{{ sohappy.email }}" required autocomplete="username" />
+    </label>
+    <label>Mot de passe
+      <input type="password" name="password" id="sohappy-password" placeholder="{% if sohappy.password_set %}déjà défini — laisser vide pour conserver{% else %}à définir{% endif %}" autocomplete="current-password" />
+    </label>
+    <div role="group">
+      <button type="submit">Enregistrer</button>
+      <button type="button" class="secondary"
+              hx-post="api/sohappy/test"
+              hx-ext="json-enc"
+              hx-swap="none"
+              hx-include="#sohappy-email, #sohappy-password"
+              hx-on:htmx:before-request="
+                const r = document.getElementById('sohappy-test-result');
+                r.textContent = 'Test en cours…';
+                r.style.color = '';
+              "
+              hx-on:htmx:after-request="
+                const r = document.getElementById('sohappy-test-result');
+                try {
+                  const data = JSON.parse(event.detail.xhr.responseText);
+                  if (data.ok) {
+                    r.textContent = '✓ Login OK (' + (data.user || '') + ')';
+                    r.style.color = 'var(--pico-color-green-500, #2e7d32)';
+                  } else {
+                    r.textContent = '✗ ' + (data.error || 'échec');
+                    r.style.color = 'var(--pico-color-red-500, #c62828)';
+                  }
+                } catch (e) {
+                  r.textContent = '✗ Réponse inattendue';
+                  r.style.color = 'var(--pico-color-red-500, #c62828)';
+                }
+              ">
+        Tester le login
+      </button>
+    </div>
+    <small id="sohappy-test-result" style="display:inline-block; margin-top:0.5rem"></small>
+  </form>
+</article>
+
+<article>
+  <header><strong>Découverte des enfants</strong></header>
+  <p>So-Happy permet à un parent de gérer plusieurs enfants sur un même compte.
+     Cliquez pour recharger la liste depuis So-Happy.</p>
+  <button hx-post="api/discover" hx-swap="none" hx-ext="json-enc"
+          hx-on:htmx:before-request="this.setAttribute('aria-busy','true')"
+          hx-on:htmx:after-request="
+            const r = document.getElementById('discover-result');
+            this.removeAttribute('aria-busy');
+            try {
+              const data = JSON.parse(event.detail.xhr.responseText);
+              if (data.ok) {
+                r.textContent = '✓ ' + data.children.length + ' enfant(s) récupéré(s)';
+                r.style.color = 'var(--pico-color-green-500, #2e7d32)';
+                setTimeout(() => location.assign('settings?tab=children'), 800);
+              } else {
+                r.textContent = '✗ ' + (data.error || 'échec');
+                r.style.color = 'var(--pico-color-red-500, #c62828)';
+              }
+            } catch (e) {
+              r.textContent = '✗ Réponse inattendue';
+              r.style.color = 'var(--pico-color-red-500, #c62828)';
+            }
+          ">
+    Rafraîchir la liste depuis So-Happy
+  </button>
+  <small id="discover-result" style="display:inline-block; margin-left:0.5rem"></small>
+</article>
+
+{# ---------------------------------------------------------------- #}
+{% elif tab == 'children' %}
+<article>
+  <header><strong>Enfants & agendas</strong></header>
+  <p>Pour chaque enfant, indiquez l'entité agenda Home Assistant cible.</p>
+
+  {% if not children %}
+    <p><em>Aucun enfant configuré. Utilisez l'onglet « Identifiants So-Happy » pour récupérer la liste.</em></p>
+  {% endif %}
+
+  {% for c in children %}
+    <details open>
+      <summary>
+        <strong>{{ c.first_name }} {{ c.last_name }}</strong>
+        (id={{ c.id }}{% if c.school %} · {{ c.school }}{% endif %})
+        {% if c.has_menus %}
+          — <small>{{ c.sohappy_menus|length }} menu(s) So-Happy</small>
+        {% endif %}
+        — {% if c.enabled %}actif{% else %}désactivé{% endif %}
+      </summary>
+      <form hx-post="api/children" hx-ext="json-enc" hx-swap="none"
+            hx-on:htmx:after-request="if(event.detail.successful){setTimeout(()=>location.reload(),600)}"
+            onsubmit="return false">
+        <input type="hidden" name="id" value="{{ c.id }}" />
+        <div class="grid">
+          <label>Prénom
+            <input type="text" name="first_name" value="{{ c.first_name }}" />
+          </label>
+          <label>Nom
+            <input type="text" name="last_name" value="{{ c.last_name }}" />
+          </label>
+        </div>
+        <label>Agenda Home Assistant (ex : <code>calendar.cantine_paul</code>, un agenda Local Calendar)
+          <input type="text" name="ha_calendar" value="{{ c.ha_calendar }}" pattern="calendar\.[a-z0-9_]+" placeholder="calendar.cantine_xxx" />
+        </label>
+        <label>
+          <input type="checkbox" name="enabled" {% if c.enabled %}checked{% endif %} />
+          Activé (coché = ce menu sera synchronisé)
+        </label>
+        <div role="group">
+          <button type="submit">Enregistrer</button>
+          <button type="button" class="secondary"
+                  hx-post="api/children/{{ c.id }}/refresh" hx-swap="none"
+                  hx-on:htmx:before-request="this.setAttribute('aria-busy','true')"
+                  hx-on:htmx:after-request="
+                    this.removeAttribute('aria-busy');
+                    const r = document.getElementById('child-result-{{ c.id }}');
+                    try {
+                      const d = JSON.parse(event.detail.xhr.responseText);
+                      if (d.ok) {
+                        r.innerHTML = '✓ Re-fetch So-Happy : ' + d.menus_found + ' menu(s), école=' + (d.child.school || '?');
+                        r.style.color = 'var(--pico-color-green-500, #2e7d32)';
+                        setTimeout(() => location.reload(), 1200);
+                      } else {
+                        r.innerHTML = '✗ ' + (d.error || 'échec');
+                        r.style.color = 'var(--pico-color-red-500, #c62828)';
+                      }
+                    } catch (e) { r.innerHTML = '✗ Réponse inattendue'; r.style.color = 'var(--pico-color-red-500, #c62828)'; }
+                  ">
+            🔄 Rafraîchir (So-Happy)
+          </button>
+        </div>
+        <div role="group">
+          <button type="button" class="secondary outline"
+                  hx-post="api/children/{{ c.id }}/ha/test" hx-swap="none"
+                  hx-on:htmx:before-request="this.setAttribute('aria-busy','true')"
+                  hx-on:htmx:after-request="
+                    this.removeAttribute('aria-busy');
+                    const r = document.getElementById('ha-result-{{ c.id }}');
+                    try {
+                      const d = JSON.parse(event.detail.xhr.responseText);
+                      if (d.ok) {
+                        let txt = '✓ Connexion OK — ' + d.events_count + ' événement(s) HA - Menu dans cet agenda';
+                        if (d.events && d.events.length) {
+                          txt += '<ul>' + d.events.slice(0,5).map(e => '<li><small>' + e.date + ' — ' + e.summary + '</small></li>').join('') + '</ul>';
+                        }
+                        r.innerHTML = txt;
+                        r.style.color = 'var(--pico-color-green-500, #2e7d32)';
+                      } else {
+                        r.innerHTML = '✗ ' + (d.error || 'échec');
+                        r.style.color = 'var(--pico-color-red-500, #c62828)';
+                      }
+                    } catch (e) { r.innerHTML = '✗ Réponse inattendue'; r.style.color = 'var(--pico-color-red-500, #c62828)'; }
+                  ">
+            🔌 Tester l'agenda HA
+          </button>
+          <button type="button" class="secondary outline"
+                  hx-delete="api/children/{{ c.id }}" hx-swap="none"
+                  hx-confirm="Supprimer cet enfant de la config ?"
+                  hx-on:htmx:after-request="if(event.detail.successful){setTimeout(()=>location.reload(),400)}">
+            Supprimer
+          </button>
+        </div>
+        <small id="child-result-{{ c.id }}" style="display:block; margin-top:0.5rem"></small>
+        <small id="ha-result-{{ c.id }}" style="display:block; margin-top:0.3rem"></small>
+        {% if c.sohappy_menus %}
+          <details>
+            <summary><small>Menus So-Happy découverts ({{ c.sohappy_menus|length }})</small></summary>
+            <table>
+              <thead><tr><th>ID</th><th>Nom</th><th>Client</th><th>School</th><th>Menu type</th></tr></thead>
+              <tbody>
+                {% for m in c.sohappy_menus %}
+                  <tr>
+                    <td><code>{{ m.id }}</code></td>
+                    <td>{{ m.name or '—' }}</td>
+                    <td><code>{{ m.client_id or '—' }}</code></td>
+                    <td><code>{{ m.school_id or '—' }}</code></td>
+                    <td><code>{{ m.menu_type_id or '—' }}</code></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </details>
+        {% endif %}
+      </form>
+    </details>
+  {% endfor %}
+</article>
+
+{# ---------------------------------------------------------------- #}
+{% elif tab == 'llm' %}
+<article>
+  <header><strong>Reformatage des menus via LLM</strong></header>
+  <p>
+    Active un appel à l'API <strong>MiniMax</strong> (compatible OpenAI) pour
+    reformater chaque menu So-Happy en une liste courte de 5 lignes adaptée à
+    un agenda :
+  </p>
+  <pre><code>Entrée : choix 1 / choix 2
+Plat : choix 1 / choix 2
+Garnitures : choix 1 / choix 2
+Laitage : choix 1 / choix 2
+Dessert : </code></pre>
+  <p>
+    Aucun allergène ni flag (végé / bio / local / fait maison) n'est affiché.
+    Si le LLM est indisponible ou si la clé manque, un formatage déterministe
+    local (même structure, mais sans nettoyage marketing) prend le relais.
+  </p>
+
+  <form id="form-llm" hx-post="api/llm" hx-ext="json-enc" hx-swap="none"
+        hx-on:htmx:after-request="if(event.detail.successful){setTimeout(()=>location.reload(),600)}"
+        onsubmit="return false">
+    <label>
+      <input type="checkbox" name="use_llm_for_menus" {% if llm.enabled %}checked{% endif %} />
+      Activer le reformatage LLM des menus
+    </label>
+
+    <label>Clé API MiniMax
+      <input type="password" name="minimax_api_key" id="llm-api-key"
+             placeholder="{% if llm.api_key_set %}déjà définie — laisser vide pour conserver{% else %}sk-...{% endif %}"
+             autocomplete="off" />
+      <small>Stockée dans <code>config.json</code> (chmod 600). Jamais renvoyée en clair par l'API.</small>
+    </label>
+
+    <div class="grid">
+      <label>URL de base de l'API
+        <input type="url" name="minimax_base_url" id="llm-base-url"
+               value="{{ llm.base_url }}" />
+      </label>
+      <label>Modèle
+        <input type="text" name="minimax_model" id="llm-model"
+               value="{{ llm.model }}" />
+      </label>
+    </div>
+    <label>Format d'endpoint
+      <select name="minimax_endpoint" id="llm-endpoint">
+        <option value="anthropic" {% if llm.endpoint == 'anthropic' %}selected{% endif %}>Anthropic (recommandé — désactive le thinking)</option>
+        <option value="openai" {% if llm.endpoint == 'openai' %}selected{% endif %}>OpenAI (legacy — peut renvoyer des réponses vides)</option>
+      </select>
+      <small>L'API Anthropic permet de désactiver le mode « thinking » de M2.7/M3, qui sinon peut renvoyer des réponses sans contenu visible.</small>
+    </label>
+
+    <div role="group">
+      <button type="submit">Enregistrer</button>
+      <button type="button" class="secondary"
+              hx-post="api/llm/test" hx-swap="none" hx-ext="json-enc"
+              hx-include="#llm-api-key, #llm-base-url, #llm-model, #llm-endpoint"
+              hx-on:htmx:before-request="
+                const r = document.getElementById('llm-test-result');
+                r.textContent = 'Test en cours…';
+                r.style.color = '';
+              "
+              hx-on:htmx:after-request="
+                const r = document.getElementById('llm-test-result');
+                try {
+                  const data = JSON.parse(event.detail.xhr.responseText);
+                  if (data.ok) {
+                    r.textContent = '✓ Connexion OK (modèle ' + (data.model || '?') + ', ' + (data.latency_ms ?? '?') + ' ms)';
+                    r.style.color = 'var(--pico-color-green-500, #2e7d32)';
+                  } else {
+                    r.textContent = '✗ ' + (data.error || 'échec');
+                    r.style.color = 'var(--pico-color-red-500, #c62828)';
+                  }
+                } catch (e) {
+                  r.textContent = '✗ Réponse inattendue';
+                  r.style.color = 'var(--pico-color-red-500, #c62828)';
+                }
+              ">
+        Tester la connexion LLM
+      </button>
+    </div>
+    <small id="llm-test-result" style="display:inline-block; margin-top:0.5rem"></small>
+  </form>
+</article>
+
+{# ---------------------------------------------------------------- #}
+{% elif tab == 'mqtt' %}
+<article>
+  <header><strong>Home Assistant (MQTT)</strong></header>
+  <p>
+    Publication des menus vers Home Assistant via MQTT broker
+    (EMQX addon HAOS typique). Active le
+    <strong>Home Assistant MQTT integration</strong> avec Discovery sur
+    HA — les sensors se créent automatiquement au 1er sync.
+  </p>
+  <p>
+    Trois entités HA sont créées par enfant :
+    <code>sensor.ha_menu_<em>enfant</em>_menu_today</code> (menu du jour),
+    <code>sensor.ha_menu_<em>enfant</em>_menu_tomorrow</code> (menu de demain —
+    idéal pour une notif push le soir), et
+    <code>calendar.ha_menu_<em>enfant</em></code> (calendrier complet).
+  </p>
+
+  <form id="form-mqtt" hx-post="api/mqtt" hx-ext="json-enc" hx-swap="none"
+        hx-on:htmx:after-request="if(event.detail.successful){setTimeout(()=>location.reload(),600)}"
+        onsubmit="return false">
+    <label>
+      <input type="checkbox" name="use_mqtt" {% if mqtt.enabled %}checked{% endif %} />
+      Activer la publication MQTT après chaque sync
+    </label>
+
+    <div class="grid">
+      <label>Broker (IP ou host)
+        <input type="text" name="mqtt_host" id="mqtt-host"
+               value="{{ mqtt.host }}" placeholder="a0d7b954-emqx" />
+      </label>
+      <label>Port
+        <input type="number" name="mqtt_port" id="mqtt-port"
+               value="{{ mqtt.port }}" min="1" max="65535" />
+      </label>
+    </div>
+
+    <div class="grid">
+      <label>Utilisateur
+        <input type="text" name="mqtt_username" id="mqtt-user"
+               value="{{ mqtt.username }}" autocomplete="off" />
+      </label>
+      <label>Mot de passe
+        <input type="password" name="mqtt_password" id="mqtt-pass"
+               placeholder="{% if mqtt.password_set %}déjà défini — laisser vide pour conserver{% else %}(à définir){% endif %}"
+               autocomplete="new-password" />
+      </label>
+    </div>
+
+    <label>Préfixe des topics MQTT
+      <input type="text" name="mqtt_base_topic" id="mqtt-topic"
+             value="{{ mqtt.base_topic }}" />
+      <small>Défaut <code>ha_menu</code>. Topics publiés :
+             <code>{base}/{enfant}/today</code>,
+             <code>{base}/{enfant}/tomorrow</code>,
+             <code>{base}/{enfant}/calendar</code>.</small>
+    </label>
+
+    <div class="grid">
+      <label>QoS
+        <select name="mqtt_qos" id="mqtt-qos">
+          <option value="0" {% if mqtt.qos == 0 %}selected{% endif %}>0 — au plus une fois</option>
+          <option value="1" {% if mqtt.qos == 1 %}selected{% endif %}>1 — au moins une fois (défaut)</option>
+          <option value="2" {% if mqtt.qos == 2 %}selected{% endif %}>2 — exactement une fois</option>
+        </select>
+      </label>
+      <label>Retain
+        <select name="mqtt_retain" id="mqtt-retain">
+          <option value="true" {% if mqtt.retain %}selected{% endif %}>oui (défaut — HA voit les valeurs même après reboot)</option>
+          <option value="false" {% if not mqtt.retain %}selected{% endif %}>non</option>
+        </select>
+      </label>
+    </div>
+
+    <div role="group">
+      <button type="submit">Enregistrer</button>
+      <button type="button" class="secondary"
+              hx-post="api/mqtt/test" hx-swap="none" hx-ext="json-enc"
+              hx-include="#mqtt-host, #mqtt-port, #mqtt-user, #mqtt-pass, #mqtt-topic"
+              hx-on:htmx:before-request="
+                const r = document.getElementById('mqtt-test-result');
+                r.textContent = 'Test en cours…';
+                r.style.color = '';
+              "
+              hx-on:htmx:after-request="
+                const r = document.getElementById('mqtt-test-result');
+                try {
+                  const data = JSON.parse(event.detail.xhr.responseText);
+                  if (data.ok) {
+                    r.textContent = '✓ Publication test OK (' + (data.published || 0) + ' msg(s)';
+                    r.style.color = 'var(--pico-color-green-500, #2e7d32)';
+                  } else {
+                    r.textContent = '✗ ' + (data.error || ('échec (' + (data.errors || []).join(', ') + ')'));
+                    r.style.color = 'var(--pico-color-red-500, #c62828)';
+                  }
+                } catch (e) {
+                  r.textContent = '✗ Réponse inattendue';
+                  r.style.color = 'var(--pico-color-red-500, #c62828)';
+                }
+              ">
+        Tester la publication
+      </button>
+    </div>
+    <small id="mqtt-test-result" style="display:inline-block; margin-top:0.5rem"></small>
+  </form>
+</article>
+
+{# ---------------------------------------------------------------- #}
+{% elif tab == 'configuration' %}
+<article>
+  <header><strong>Configuration du sync</strong></header>
+  <form hx-post="api/config" hx-ext="json-enc" hx-swap="none"
+        hx-on:htmx:after-request="if(event.detail.successful){setTimeout(()=>location.reload(),600)}"
+        onsubmit="return false">
+    <div class="grid">
+      <label>Cron (5 champs, fuseau Europe/Paris)
+        <input type="text" name="sync_cron" value="{{ env_redacted.SYNC_CRON }}" />
+      </label>
+      <label>Auto-sync
+        <select name="auto_sync">
+          <option value="1" {% if env_redacted.AUTO_SYNC == '1' %}selected{% endif %}>activée</option>
+          <option value="0" {% if env_redacted.AUTO_SYNC != '1' %}selected{% endif %}>désactivée</option>
+        </select>
+      </label>
+    </div>
+    <div class="grid">
+      <label>Lookback (jours dans le passé)
+        <input type="number" name="sync_lookback_days" value="{{ env_redacted.LOOKBACK_DAYS }}" min="0" max="7" />
+      </label>
+      <label>Lookahead (jours dans le futur)
+        <input type="number" name="sync_lookahead_days" value="{{ env_redacted.LOOKAHEAD_DAYS }}" min="1" max="60" />
+      </label>
+    </div>
+    <label>URL de base de l'API So-Happy
+      <input type="url" name="api_base" value="{{ env_redacted.API_BASE }}" />
+    </label>
+    <label>Clé Azure API Management (Ocp-Apim-Subscription-Key)
+      <input type="text" name="api_subscription_key"
+             value="{{ env_redacted.API_SUBSCRIPTION_KEY }}"
+             placeholder="hex de 32 caractères" />
+      <small>Clé embarquée dans le bundle JS public de so-happy.fr. Modifier uniquement si So-Happy change de déploiement.</small>
+    </label>
+    <button type="submit">Enregistrer</button>
+    <small id="config-save-result" style="display:inline-block; margin-left:0.5rem"></small>
+  </form>
+</article>
+
+<article>
+  <header><strong>Variables d'environnement (résumé non sensible)</strong></header>
+  <table>
+    <tbody>
+      {% for k, v in env_redacted.items() %}
+        <tr><th scope="row"><code>{{ k }}</code></th><td><code>{{ v }}</code></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</article>
+{% endif %}
+
+{% endblock %}

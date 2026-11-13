@@ -1,0 +1,21 @@
+<div id="status" hx-get="partials/status" hx-trigger="every 5s" hx-swap="outerHTML">
+  <article>
+    <header><strong>État du sync</strong></header>
+    {% if is_syncing %}
+      <p aria-busy="true">Synchronisation en cours…</p>
+    {% elif last_error %}
+      <p style="color: var(--pico-color-red-500);">
+        <strong>Dernière erreur :</strong> {{ last_error }}
+      </p>
+    {% elif last_sync %}
+      <p>
+        Dernier sync : <strong>{{ last_sync.at }}</strong>
+        — trigger : <code>{{ last_sync.trigger }}</code>
+        — enfants OK : {{ last_sync.children_ok }} / KO : {{ last_sync.children_ko }}
+        {% if last_sync.errors %} — erreurs : {{ last_sync.errors }}{% endif %}
+      </p>
+    {% else %}
+      <p><em>Aucun sync effectué pour l'instant.</em></p>
+    {% endif %}
+  </article>
+</div>

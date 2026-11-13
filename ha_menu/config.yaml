@@ -1,0 +1,18 @@
+name: HA - Menu
+version: "2.0.0"
+slug: ha_menu
+description: Menus de cantine So-Happy vers un agenda Home Assistant par enfant
+url: https://github.com/cabatech/ha-menu
+arch:
+  - amd64
+  - aarch64
+init: false
+homeassistant_api: true
+ingress: true
+ingress_port: 8237
+panel_icon: mdi:silverware-fork-knife
+panel_title: Menu
+# Toute la configuration (So-Happy, enfants et agendas, LLM, MQTT) se fait dans la WebUI,
+# stockée dans /data/config.json.
+options: {}
+schema: {}

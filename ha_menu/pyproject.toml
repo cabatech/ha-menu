@@ -1,0 +1,60 @@
+[project]
+name = "ha_menu"
+version = "2.0.0"
+description = "Menus de cantine So-Happy vers un agenda Home Assistant"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Christophe", email = "christophe@example.invalid" },
+]
+dependencies = [
+    "httpx>=0.28",
+    "websockets>=13.0",
+    "python-dotenv>=1.0.0",
+    "rich>=13.7.0",
+    "tenacity>=9.0.0",
+]
+
+[project.optional-dependencies]
+mqtt = [
+    # Client MQTT pour la publication Home Assistant (via EMQX).
+    # Import paresseux — sans paho-mqtt, la publication est juste
+    # désactivée sans casser le reste.
+    "paho-mqtt>=1.6.0",
+]
+scheduler = [
+    "apscheduler>=3.10.0",
+]
+web = [
+    "fastapi>=0.115,<0.120",
+    "uvicorn[standard]>=0.32.0",
+    "jinja2>=3.1.4,<3.2",
+    "python-multipart>=0.0.20",
+]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24",
+    "respx>=0.21.0",
+    "ruff>=0.6.0",
+]
+
+[project.scripts]
+ha-menu = "ha_menu.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ha_menu"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"

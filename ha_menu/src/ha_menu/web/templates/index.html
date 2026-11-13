@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}HA - Menu — Tableau de bord{% endblock %}
+{% block content %}
+
+<hgroup>
+  <h1>HA - Menu</h1>
+  <p>Extraction des menus So-Happy vers vos agendas Home Assistant.</p>
+</hgroup>
+
+{% include "_status.html" %}
+
+<section>
+  <h2>Synchronisation</h2>
+  <p>
+    Cron actuelle : <code>{{ cron }}</code> (fuseau Europe/Paris)
+    — auto-sync : <strong>{% if auto_sync %}activée{% else %}désactivée{% endif %}</strong>.
+  </p>
+  <div role="group">
+    <button id="sync-button"
+            hx-post="api/sync" hx-swap="none" hx-ext="json-enc"
+            hx-vals='{"publish": true, "delete_orphans": false}'
+            hx-on:htmx:before-request="this.setAttribute('aria-busy','true'); this.textContent='Sync en cours…'"
+            hx-on:htmx:after-request="this.removeAttribute('aria-busy'); this.textContent='Sync lancé ✓'"
+            {% if is_syncing %}disabled aria-busy="true"{% endif %}>
+      {% if is_syncing %}Sync en cours…{% else %}Lancer un sync manuel{% endif %}
+    </button>
+    <small>(le sync manuel publie dans les agendas mais ne supprime pas les orphelins — utilisez la ligne de commande pour un ménage)</small>
+  </div>
+</section>
+
+<section>
+  <h2>Enfants configurés</h2>
+  {% if not children %}
+    <article>
+      <p><strong>Aucun enfant actif.</strong></p>
+      <p>Rendez-vous dans <a href="settings?tab=credentials">Identifiants So-Happy</a>
+         pour configurer votre compte, puis <a href="settings?tab=children">Enfants & agendas</a>
+         pour sélectionner les enfants à synchroniser.</p>
+    </article>
+  {% else %}
+    <div class="overflow-auto">
+    <table>
+      <thead>
+        <tr><th>Prénom</th><th>École</th><th>Agenda HA</th></tr>
+      </thead>
+      <tbody>
+        {% for c in children %}
+          <tr>
+            <td><strong>{{ c.full_name }}</strong></td>
+            <td>{{ c.school or "—" }}</td>
+            <td>
+              {% if c.ha_calendar %}
+                <code>{{ c.ha_calendar }}</code>
+              {% else %}
+                <em>non configuré</em>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  {% endif %}
+</section>
+
+{% if last_sync and last_sync.details %}
+<section>
+  <h2>Détail du dernier sync</h2>
+  <details>
+    <summary>Voir le JSON</summary>
+    <pre><code>{{ last_sync.details|tojson(indent=2) }}</code></pre>
+  </details>
+</section>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,54 @@
+/* ha_menu — overrides app.css (au-dessus de pico.min.css) */
+
+.topbar {
+  background: var(--pico-background-color);
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  margin-bottom: 1rem;
+}
+
+.topbar nav {
+  align-items: center;
+}
+
+.topbar nav ul li a {
+  text-decoration: none;
+}
+
+.topbar nav ul li a[aria-selected="true"] {
+  font-weight: bold;
+  border-bottom: 2px solid var(--pico-primary);
+}
+
+article details summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+article details[open] summary {
+  margin-bottom: 0.5rem;
+}
+
+code {
+  word-break: break-all;
+}
+
+.overflow-auto {
+  overflow-x: auto;
+}
+
+pre {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+#status {
+  margin-bottom: 1rem;
+}
+
+#status article {
+  margin-bottom: 0;
+}
+
+button[aria-busy="true"] {
+  cursor: progress;
+}
