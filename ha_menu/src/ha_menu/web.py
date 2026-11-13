@@ -1009,15 +1009,11 @@ def create_app(config_path: Path = DEFAULT_CONFIG_PATH) -> FastAPI:
             )
         from .mqtt_publisher import MQTTPublisher
 
-        class _DummyChild:
-            id = 0
-            first_name = "Test"
-            last_name = ""
-            full_name = "Test"
-
+        # Connexion seule, sans enfant : publier un faux enfant créerait un appareil
+        # « Test » permanent dans HA (discovery retenue).
         try:
             pub = MQTTPublisher(test_cfg)
-            stats = pub.publish([_DummyChild()], {0: []})
+            stats = pub.publish([], {})
         except Exception as exc:  # noqa: BLE001
             return JSONResponse(
                 {"ok": False, "error": f"Connexion broker : {exc}"},
