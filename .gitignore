@@ -26,3 +26,4 @@ htmlcov/
 *.swp
 .DS_Store
 .venv312
+.contexte.md
