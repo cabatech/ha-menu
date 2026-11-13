@@ -55,3 +55,9 @@ def test_plan_sync_keep_update_delete_and_ignore_foreign() -> None:
 def test_marker_ignores_unmarked() -> None:
     assert marker_of("rien ici") is None
     assert marker_of(f"x\n{MARKER}7-2026-01-01") == "7-2026-01-01"
+
+
+def test_title_drops_default_label() -> None:
+    assert event_payload(_day(date(2026, 11, 16)), CHILD)["summary"] == "🍽 Cantine Paul · Menu"
+    day = MenuDay(jour=date(2026, 11, 16), label="Menu de Paul")
+    assert event_payload(day, CHILD)["summary"] == "🍽 Cantine Paul"

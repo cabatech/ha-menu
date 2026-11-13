@@ -38,8 +38,10 @@ def make_key(child_id: int, jour: date) -> str:
 def event_payload(day: MenuDay, child: Child) -> dict:
     """Données ``calendar.create_event`` pour un jour de menu."""
     title = f"🍽 Cantine {child.first_name or child.full_name}"
-    if day.label and day.label.lower() not in ("", "standard", "default"):
-        title += f" — · {day.label}"
+    label = (day.label or "").strip()
+    # « Menu de <prénom> » (libellé So-Happy par défaut) n'apporte rien au titre.
+    if label.lower() not in ("", "standard", "default") and not label.lower().startswith("menu de"):
+        title += f" · {label}"
     return {
         "summary": title,
         "description": f"{day.summary}\n{MARKER}{make_key(child.id, day.jour)}",
