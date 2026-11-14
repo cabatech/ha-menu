@@ -1,5 +1,5 @@
 name: HA - Menu
-version: "3.0.0"
+version: "3.0.1"
 slug: ha_menu
 description: Menus de cantine So-Happy vers un agenda Home Assistant par enfant
 url: https://github.com/cabatech/ha-menu
