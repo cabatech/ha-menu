@@ -4,14 +4,18 @@
       "user": {
         "title": "HA - Menu",
         "description": "Adresse de l'app HA - Menu sur le réseau interne de Home Assistant.",
-        "data": {"url": "URL de l'app"}
+        "data": {
+          "url": "URL de l'app"
+        }
       },
       "hassio_confirm": {
         "title": "HA - Menu",
         "description": "L'app HA - Menu a été trouvée. Ajouter l'intégration ?"
       }
     },
-    "error": {"cannot_connect": "App HA - Menu injoignable."},
+    "error": {
+      "cannot_connect": "App HA - Menu injoignable."
+    },
     "abort": {
       "already_configured": "HA - Menu est déjà configuré.",
       "cannot_connect": "App HA - Menu injoignable."
@@ -19,11 +23,18 @@
   },
   "options": {
     "step": {
-      "init": {"title": "Enfant", "data": {"child": "Enfant à régler"}},
+      "init": {
+        "title": "Enfant",
+        "data": {
+          "child": "Enfant à régler"
+        }
+      },
       "source": {
         "title": "Inscription à la cantine",
         "description": "Où vérifier que l'enfant mange à la cantine un jour donné ?",
-        "data": {"source": "Source"}
+        "data": {
+          "source": "Source"
+        }
       },
       "entities": {
         "title": "Entités à croiser",
@@ -37,6 +48,9 @@
           "timetable_tomorrow": "Emploi du temps de demain (Pronote)"
         }
       }
+    },
+    "abort": {
+      "not_ready": "L'app HA - Menu ne répond pas ou n'a encore aucun menu. Lancer une synchro, puis réessayer."
     }
   },
   "selector": {
@@ -49,11 +63,23 @@
     }
   },
   "entity": {
-    "sensor": {"menu_affiche": {"name": "Menu affiché"}},
-    "binary_sensor": {
-      "cantine_aujourdhui": {"name": "Cantine aujourd'hui"},
-      "cantine_demain": {"name": "Cantine demain"}
+    "sensor": {
+      "menu_affiche": {
+        "name": "Menu affiché"
+      }
     },
-    "button": {"synchroniser": {"name": "Synchroniser"}}
+    "binary_sensor": {
+      "cantine_aujourdhui": {
+        "name": "Aujourd'hui"
+      },
+      "cantine_demain": {
+        "name": "Demain"
+      }
+    },
+    "button": {
+      "synchroniser": {
+        "name": "Synchroniser"
+      }
+    }
   }
 }

@@ -91,6 +91,12 @@ class HaMenuConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(step_id="hassio_confirm")
 
 
+def options_children(entry) -> dict:
+    """Enfants connus du coordinateur ; vide si l'entrée n'est pas chargée."""
+    coordinator = getattr(entry, "runtime_data", None)
+    return dict(getattr(coordinator, "data", None) or {})
+
+
 class HaMenuOptionsFlow(OptionsFlow):
     """Par enfant : source d'inscription et entités à croiser."""
 
@@ -102,7 +108,9 @@ class HaMenuOptionsFlow(OptionsFlow):
         return dict(self.config_entry.options.get(CONF_CHILDREN, {}))
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        data = self.config_entry.runtime_data.data or {}
+        data = options_children(self.config_entry)
+        if not data:
+            return self.async_abort(reason="not_ready")
         if user_input is not None:
             self._child = user_input[CONF_CHILD]
             return await self.async_step_source()

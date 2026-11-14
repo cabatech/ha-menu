@@ -157,21 +157,21 @@ class StatusResponse(BaseModel):
 # ------------------------------------------------------------------------
 
 
-def announce_to_supervisor() -> None:
+async def announce_to_supervisor() -> None:
     """Découverte : l'intégration HA - Menu est proposée dans Paramètres → Intégrations."""
     token = os.getenv("SUPERVISOR_TOKEN")
     if not token:
         return
     try:
-        r = httpx.post(
-            "http://supervisor/discovery",
-            headers={"Authorization": f"Bearer {token}"},
-            json={
-                "service": "ha_menu",
-                "config": {"host": os.getenv("HOSTNAME", ""), "port": 8237},
-            },
-            timeout=10,
-        )
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.post(
+                "http://supervisor/discovery",
+                headers={"Authorization": f"Bearer {token}"},
+                json={
+                    "service": "ha_menu",
+                    "config": {"host": os.getenv("HOSTNAME", ""), "port": 8237},
+                },
+            )
         r.raise_for_status()
         logger.info("Annonce au Supervisor : %s", r.json().get("result"))
     except Exception as exc:  # noqa: BLE001
@@ -191,7 +191,7 @@ def create_app(config_path: Path = DEFAULT_CONFIG_PATH) -> FastAPI:
     @asynccontextmanager
     async def _lifespan(_app: FastAPI):
         """Annonce l'app à HA puis démarre/arrête le scheduler si auto_sync=True."""
-        announce_to_supervisor()
+        await announce_to_supervisor()
         if not state.config.auto_sync:
             logger.info("Auto-sync désactivé (config.auto_sync=False)")
             yield
@@ -251,6 +251,8 @@ def create_app(config_path: Path = DEFAULT_CONFIG_PATH) -> FastAPI:
     lan_nets = [
         ipaddress.ip_network("127.0.0.0/8"),
         ipaddress.ip_network("192.168.0.0/16"),
+        # Réseau interne des apps HA : HA Core (intégration HA - Menu), Supervisor.
+        ipaddress.ip_network("172.30.32.0/23"),
         ipaddress.ip_network("::1/128"),
     ]
     lan_host_suffixes = (".local", ".lan", ".home", ".internal", ".nas")
