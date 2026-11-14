@@ -37,10 +37,18 @@ class SyncButton(CoordinatorEntity, ButtonEntity):
         )
 
     async def async_press(self) -> None:
+        try:
+            if not await self.coordinator.api.sync():
+                _LOGGER.info("Synchro déjà en cours")
+        except HaMenuApiError as exc:
+            _LOGGER.warning("Synchro impossible : %s", exc)
+            return
+        # Ne pas bloquer l'appel de service (automatisations) pendant la synchro.
+        self.hass.async_create_background_task(self._refresh_when_done(), "ha_menu_sync")
+
+    async def _refresh_when_done(self) -> None:
         api = self.coordinator.api
         try:
-            if not await api.sync():
-                _LOGGER.info("Synchro déjà en cours")
             for _ in range(60):  # 5 min max
                 await asyncio.sleep(5)
                 if not (await api.status()).get("syncing"):
