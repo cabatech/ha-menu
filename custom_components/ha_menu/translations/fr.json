@@ -1,0 +1,59 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "HA - Menu",
+        "description": "Adresse de l'app HA - Menu sur le réseau interne de Home Assistant.",
+        "data": {"url": "URL de l'app"}
+      },
+      "hassio_confirm": {
+        "title": "HA - Menu",
+        "description": "L'app HA - Menu a été trouvée. Ajouter l'intégration ?"
+      }
+    },
+    "error": {"cannot_connect": "App HA - Menu injoignable."},
+    "abort": {
+      "already_configured": "HA - Menu est déjà configuré.",
+      "cannot_connect": "App HA - Menu injoignable."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {"title": "Enfant", "data": {"child": "Enfant à régler"}},
+      "source": {
+        "title": "Inscription à la cantine",
+        "description": "Où vérifier que l'enfant mange à la cantine un jour donné ?",
+        "data": {"source": "Source"}
+      },
+      "entities": {
+        "title": "Entités à croiser",
+        "data": {
+          "cantine_today": "Inscrit cantine aujourd'hui",
+          "cantine_tomorrow": "Inscrit cantine demain",
+          "loisirs_today": "Inscrit accueil de loisirs aujourd'hui",
+          "loisirs_tomorrow": "Inscrit accueil de loisirs demain",
+          "repas_loisirs": "Le repas est compris dans l'accueil de loisirs",
+          "timetable_today": "Emploi du temps du jour (Pronote)",
+          "timetable_tomorrow": "Emploi du temps de demain (Pronote)"
+        }
+      }
+    }
+  },
+  "selector": {
+    "source": {
+      "options": {
+        "aucune": "Aucune (menu présent = cantine)",
+        "guichet_unique": "Guichet Unique",
+        "pronote": "Pronote (cours le matin et l'après-midi)"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {"menu_affiche": {"name": "Menu affiché"}},
+    "binary_sensor": {
+      "cantine_aujourdhui": {"name": "Cantine aujourd'hui"},
+      "cantine_demain": {"name": "Cantine demain"}
+    },
+    "button": {"synchroniser": {"name": "Synchroniser"}}
+  }
+}

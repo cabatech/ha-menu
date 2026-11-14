@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-
 import aiohttp
 
 
@@ -24,7 +22,7 @@ class HaMenuApi:
                 if resp.status >= 500:
                     raise HaMenuApiError(f"{path} : HTTP {resp.status}")
                 return resp.status, await resp.json(content_type=None)
-        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as exc:
+        except (TimeoutError, aiohttp.ClientError, ValueError) as exc:
             raise HaMenuApiError(f"{path} : {exc}") from exc
 
     async def status(self) -> dict:
