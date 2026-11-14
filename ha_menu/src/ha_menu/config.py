@@ -45,15 +45,6 @@ DEFAULT_MINIMAX_TIMEOUT = 30.0
 DEFAULT_MINIMAX_ENDPOINT = "anthropic"
 ANTHROPIC_API_VERSION = "2023-06-01"
 
-# --- MQTT (publication vers Home Assistant via EMQX) -------------------
-DEFAULT_MQTT_HOST = ""
-DEFAULT_MQTT_PORT = 1883
-DEFAULT_MQTT_USERNAME = ""
-DEFAULT_MQTT_PASSWORD = ""
-DEFAULT_MQTT_BASE_TOPIC = "ha_menu"
-DEFAULT_MQTT_TIMEOUT = 10.0
-DEFAULT_MQTT_QOS = 1
-DEFAULT_MQTT_RETAIN = True
 
 
 @dataclass(slots=True)
@@ -101,16 +92,6 @@ class AppConfig:
     llm_max_retries: int = 2
     # Délai initial entre tentatives (backoff exponentiel : delay * 2^attempt).
     llm_retry_delay: float = 0.5
-    # --- MQTT (Home Assistant via EMQX) ---------------------------------
-    use_mqtt: bool = False
-    mqtt_host: str = DEFAULT_MQTT_HOST
-    mqtt_port: int = DEFAULT_MQTT_PORT
-    mqtt_username: str = DEFAULT_MQTT_USERNAME
-    mqtt_password: str = DEFAULT_MQTT_PASSWORD
-    mqtt_base_topic: str = DEFAULT_MQTT_BASE_TOPIC
-    mqtt_timeout: float = DEFAULT_MQTT_TIMEOUT
-    mqtt_qos: int = DEFAULT_MQTT_QOS
-    mqtt_retain: bool = DEFAULT_MQTT_RETAIN
 
     @classmethod
     def empty(cls) -> Self:
@@ -244,16 +225,6 @@ def load(path: Path = DEFAULT_CONFIG_PATH) -> AppConfig:
         minimax_endpoint=data.get("minimax_endpoint", DEFAULT_MINIMAX_ENDPOINT),
         llm_max_retries=int(data.get("llm_max_retries", 2)),
         llm_retry_delay=float(data.get("llm_retry_delay", 0.5)),
-        # MQTT
-        use_mqtt=bool(data.get("use_mqtt", False)),
-        mqtt_host=data.get("mqtt_host", DEFAULT_MQTT_HOST),
-        mqtt_port=int(data.get("mqtt_port", DEFAULT_MQTT_PORT)),
-        mqtt_username=data.get("mqtt_username", DEFAULT_MQTT_USERNAME) or "",
-        mqtt_password=data.get("mqtt_password", DEFAULT_MQTT_PASSWORD) or "",
-        mqtt_base_topic=data.get("mqtt_base_topic", DEFAULT_MQTT_BASE_TOPIC),
-        mqtt_timeout=float(data.get("mqtt_timeout", DEFAULT_MQTT_TIMEOUT)),
-        mqtt_qos=int(data.get("mqtt_qos", DEFAULT_MQTT_QOS)),
-        mqtt_retain=bool(data.get("mqtt_retain", DEFAULT_MQTT_RETAIN)),
     )
 
 
@@ -285,16 +256,6 @@ def save(cfg: AppConfig, path: Path = DEFAULT_CONFIG_PATH) -> None:
         "minimax_endpoint": cfg.minimax_endpoint,
         "llm_max_retries": cfg.llm_max_retries,
         "llm_retry_delay": cfg.llm_retry_delay,
-        # MQTT (le mot de passe est écrit dans le fichier chmod 600).
-        "use_mqtt": cfg.use_mqtt,
-        "mqtt_host": cfg.mqtt_host,
-        "mqtt_port": cfg.mqtt_port,
-        "mqtt_username": cfg.mqtt_username,
-        "mqtt_password": cfg.mqtt_password,
-        "mqtt_base_topic": cfg.mqtt_base_topic,
-        "mqtt_timeout": cfg.mqtt_timeout,
-        "mqtt_qos": cfg.mqtt_qos,
-        "mqtt_retain": cfg.mqtt_retain,
         "saved_at": datetime.now().isoformat(timespec="seconds"),
     }
 
@@ -340,8 +301,4 @@ def redacted_env(cfg: AppConfig) -> dict[str, str]:
         "USE_LLM": "1" if cfg.use_llm_for_menus else "0",
         "MINIMAX_API_KEY_SET": "oui" if cfg.minimax_api_key else "non",
         "MINIMAX_MODEL": cfg.minimax_model,
-        "USE_MQTT": "1" if cfg.use_mqtt else "0",
-        "MQTT_HOST": cfg.mqtt_host or "(non configuré)",
-        "MQTT_PASSWORD_SET": "oui" if cfg.mqtt_password else "non",
-        "MQTT_BASE_TOPIC": cfg.mqtt_base_topic,
     }

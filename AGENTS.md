@@ -33,7 +33,7 @@ Supervisor depuis ce dépôt (`repository.yaml` + dossier `ha_menu/`).
 ```bash
 cd ha_menu
 uv venv .venv --python 3.12
-uv pip install --python .venv/bin/python -e ".[dev,scheduler,web,mqtt]"
+uv pip install --python .venv/bin/python -e ".[dev,scheduler,web]"
 .venv/bin/pytest -ra
 .venv/bin/ruff check src tests
 
@@ -62,7 +62,7 @@ ha_menu/src/ha_menu/
 ├── __init__.py          # version
 ├── cli.py               # argparse : sync / discover / refresh / check / list / web / daemon
 ├── config.py            # AppConfig + SoHappyCredentials + load/save (chmod 600)
-│                        # + champs LLM (minimax_*) + champs MQTT (use_mqtt, mqtt_*)
+│                        # + champs LLM (minimax_*)
 ├── models.py            # Child, MenuDay, MenuItem, MealCategory
 │                        # MenuDay.summary (court 5 lignes) + detailed_description (verbose)
 │                        # format_menu_short() = fallback déterministe sans LLM
@@ -71,17 +71,15 @@ ha_menu/src/ha_menu/
 ├── llm.py               # Module LLM : system prompt strict, format 5 lignes, retry
 │                        # endpoint="anthropic" (défaut) ou "openai"
 │                        # _strip_think_tags() (M2.x) + _chat_with_retry() + _call_with_format_retry()
-├── mqtt_publisher.py    # Publication Home Assistant : 11 entités/enfant
 │                        # (5 today_<cat> + 5 tomorrow_<cat> + calendar)
 │                        # via HA Discovery (homeassistant/* topics en retain)
-├── pipeline.py          # Orchestrateur : login → menus → agenda HA → MQTT
+├── pipeline.py          # Orchestrateur : login → menus → agenda HA
 │                        # enhance_days() retourne (days, stats)
 ├── ha_calendar.py       # Agenda HA : REST (lecture, create_event) + WebSocket (delete)
 │                        # marqueur « ha-menu-id: <enfant>-<date> » dans la description
 ├── web.py               # FastAPI : status / config / sync / enfants / logs / menus
 │                        # Routes publiques bypass auth : /menus*, /static/*
 │                        # Endpoints LLM : POST /api/llm, /api/llm/test
-│                        # Endpoints MQTT : POST /api/mqtt, /api/mqtt/test
 └── web/
     ├── templates/       # Jinja2 (base, index, settings, logs, menus, _status, _logs)
     └── static/          # pico.min.css + htmx.min.js + app.css
@@ -134,16 +132,16 @@ Dessert : choix 1
 - **thinking disabled** (Anthropic) : évite que M2.x/M3 ne renvoie
   juste un bloc `<think>...</think>` vide.
 
-## Module MQTT (`mqtt_publisher.py`)
+## Intégration HA (`custom_components/ha_menu/`)
 
-- **11 entités HA par enfant** : 5 sensors `today_<cat>` + 5 sensors
-  `tomorrow_<cat>` + 1 calendar. State = string simple (pas JSON).
-- **Topics** : `homeassistant/sensor/ha_menu_<slug>_<suffix>/config`
-  (discovery retain) + `ha_menu/<slug>/today/<cat>` (state).
-- **Publication** : 1 seule connexion TCP au broker par sync.
-- **Broker** : `mqtt_host`/`mqtt_port`/`mqtt_username`/`mqtt_password`
-  dans AppConfig (password chmod 600). TLS : pas implémenté (LAN).
-- **Dépendance** : extra `mqtt` (`paho-mqtt>=1.6`).
+- Intégration compagnon, installée par HACS depuis ce dépôt. Elle lit l'API de
+  l'app (`/api/menus`, `/api/status`, `/api/sync`) sur le réseau interne, sans jeton.
+- L'app s'annonce au Supervisor au démarrage (`discovery: [ha_menu]`) :
+  l'intégration est proposée dans Paramètres → Intégrations.
+- Logique « cantine » pure dans `cantine.py`, testée par `tests/integration/`
+  (`uv run --no-project --with pytest pytest tests/integration`).
+- Carte `custom:ha-menu-card` servie par l'intégration (`frontend/`).
+- App et intégration partagent le numéro de version.
 
 ## Garde-fous à respecter
 
@@ -184,7 +182,6 @@ Aucun test ne tape le réseau : `httpx` est mocké via
 ### Python (optional)
 - `scheduler` : `apscheduler>=3.10.0` (mode daemon + auto-sync WebUI)
 - `web` : `fastapi`, `uvicorn[standard]`, `jinja2`, `python-multipart`
-- `mqtt` : `paho-mqtt>=1.6` (publication Home Assistant via EMQX)
 - `dev` : `pytest`, `pytest-asyncio`, `respx`, `ruff`
 
 ### Système (Dockerfile stage 2)

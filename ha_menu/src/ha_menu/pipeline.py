@@ -14,7 +14,6 @@ from .config import AppConfig
 from .ha_calendar import publish_to_ha
 from .llm import enhance_days
 from .models import Child, ExtractionResult, MenuDay
-from .mqtt_publisher import publish_all as mqtt_publish
 from .sohappy import SoHappyClient, SoHappyError
 
 logger = logging.getLogger(__name__)
@@ -81,9 +80,6 @@ def run_extraction(
     now = datetime.now()
     per_child: list[dict[str, Any]] = []
     overall = {"ok": True, "errors": 0, "children_ok": 0, "children_ko": 0}
-    # Accumule les jours par enfant pour publication MQTT globale (1
-    # seule connexion TCP au broker par sync).
-    mqtt_days_by_child: dict[int, list[MenuDay]] = {}
 
     with SoHappyClient(config) as client:
         client.login()
@@ -173,23 +169,6 @@ def run_extraction(
                     "LLM : %d/%d jours en fallback pour %s — vérifier clé/clé API",
                     llm_stats["fallback"], llm_stats["total"], child.full_name,
                 )
-            # Accumulation pour publication MQTT (une seule connexion
-            # par sync, après la boucle agenda).
-            mqtt_days_by_child[child.id] = days
-
-    # Publication MQTT globale (Home Assistant via EMQX). Ne lève jamais :
-    # un broker HS = log warning seulement (cf. mqtt_publisher).
-    if config.use_mqtt:
-        try:
-            mqtt_stats = mqtt_publish(
-                config, target_children, mqtt_days_by_child,
-            )
-            overall["mqtt"] = mqtt_stats
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("MQTT : publication globale échouée : %s", exc)
-            overall["mqtt"] = {"published": 0, "errors": [str(exc)]}
-    else:
-        overall["mqtt"] = {"published": 0, "skipped": "disabled"}
 
     return {
         "extracted_at": now.isoformat(),

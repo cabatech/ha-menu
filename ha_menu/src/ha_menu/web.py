@@ -15,6 +15,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -156,6 +157,27 @@ class StatusResponse(BaseModel):
 # ------------------------------------------------------------------------
 
 
+def announce_to_supervisor() -> None:
+    """Découverte : l'intégration HA - Menu est proposée dans Paramètres → Intégrations."""
+    token = os.getenv("SUPERVISOR_TOKEN")
+    if not token:
+        return
+    try:
+        r = httpx.post(
+            "http://supervisor/discovery",
+            headers={"Authorization": f"Bearer {token}"},
+            json={
+                "service": "ha_menu",
+                "config": {"host": os.getenv("HOSTNAME", ""), "port": 8237},
+            },
+            timeout=10,
+        )
+        r.raise_for_status()
+        logger.info("Annonce au Supervisor : %s", r.json().get("result"))
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Annonce au Supervisor impossible : %s", exc)
+
+
 def create_app(config_path: Path = DEFAULT_CONFIG_PATH) -> FastAPI:
     """Construit l'application FastAPI."""
     state = _RuntimeState(config_path)
@@ -168,7 +190,8 @@ def create_app(config_path: Path = DEFAULT_CONFIG_PATH) -> FastAPI:
 
     @asynccontextmanager
     async def _lifespan(_app: FastAPI):
-        """Démarre/arrête le scheduler APScheduler si auto_sync=True."""
+        """Annonce l'app à HA puis démarre/arrête le scheduler si auto_sync=True."""
+        announce_to_supervisor()
         if not state.config.auto_sync:
             logger.info("Auto-sync désactivé (config.auto_sync=False)")
             yield
@@ -352,7 +375,8 @@ def create_app(config_path: Path = DEFAULT_CONFIG_PATH) -> FastAPI:
         Route **publique** (bypass auth Basic + LAN bypass) — la famille
         peut la bookmarker derrière le proxy NPM sans mot de passe.
         """
-        from datetime import date as _date, timedelta
+        from datetime import date as _date
+        from datetime import timedelta
         menus_dir = default_menus_dir(state.config)
         cached_ids = list_cached_children(menus_dir)
         # Construit la liste des enfants avec menus cachés + métadonnées.
@@ -439,7 +463,7 @@ def create_app(config_path: Path = DEFAULT_CONFIG_PATH) -> FastAPI:
 
     @app.get("/settings", response_class=HTMLResponse)
     def settings_view(request: Request, tab: str = "credentials") -> HTMLResponse:
-        if tab not in ("credentials", "children", "llm", "mqtt", "configuration"):
+        if tab not in ("credentials", "children", "llm", "configuration"):
             tab = "credentials"
         ctx = {
             "request": request,
@@ -456,16 +480,6 @@ def create_app(config_path: Path = DEFAULT_CONFIG_PATH) -> FastAPI:
                 "base_url": state.config.minimax_base_url,
                 "model": state.config.minimax_model,
                 "endpoint": state.config.minimax_endpoint,
-            },
-            "mqtt": {
-                "enabled": state.config.use_mqtt,
-                "host": state.config.mqtt_host,
-                "port": state.config.mqtt_port,
-                "username": state.config.mqtt_username,
-                "password_set": bool(state.config.mqtt_password),
-                "base_topic": state.config.mqtt_base_topic,
-                "qos": state.config.mqtt_qos,
-                "retain": state.config.mqtt_retain,
             },
             "env_redacted": redacted_env(state.config),
             "is_syncing": state.is_syncing(),
@@ -937,89 +951,6 @@ def create_app(config_path: Path = DEFAULT_CONFIG_PATH) -> FastAPI:
             result = client.test_connection()
         status = 200 if result.get("ok") else 400
         return JSONResponse(result, status_code=status)
-
-    # ----------------------------------------------------------------
-    # MQTT (Home Assistant via EMQX)
-    # ----------------------------------------------------------------
-
-    @app.post("/api/mqtt")
-    async def api_mqtt_update(request: Request) -> JSONResponse:
-        """Met à jour la config MQTT (host, port, user, pwd, activation)."""
-        body = await _parse_llm_body(request)
-        if "use_mqtt" in body:
-            state.config.use_mqtt = bool(body["use_mqtt"])
-        if "mqtt_host" in body:
-            state.config.mqtt_host = str(body["mqtt_host"]).strip()
-        if "mqtt_port" in body:
-            try:
-                state.config.mqtt_port = int(body["mqtt_port"])
-            except (TypeError, ValueError):
-                pass
-        if "mqtt_username" in body:
-            state.config.mqtt_username = str(body["mqtt_username"])
-        if "mqtt_password" in body:
-            pwd = str(body["mqtt_password"] or "")
-            if pwd == "__CLEAR__":
-                state.config.mqtt_password = ""
-            elif pwd:
-                state.config.mqtt_password = pwd
-        if "mqtt_base_topic" in body and body["mqtt_base_topic"]:
-            state.config.mqtt_base_topic = str(body["mqtt_base_topic"]).strip()
-        if "mqtt_qos" in body:
-            try:
-                state.config.mqtt_qos = max(0, min(int(body["mqtt_qos"]), 2))
-            except (TypeError, ValueError):
-                pass
-        if "mqtt_retain" in body:
-            state.config.mqtt_retain = bool(body["mqtt_retain"])
-        state.persist()
-        return JSONResponse({
-            "ok": True,
-            "use_mqtt": state.config.use_mqtt,
-            "mqtt_host": state.config.mqtt_host,
-            "mqtt_port": state.config.mqtt_port,
-            "mqtt_username": state.config.mqtt_username,
-            "mqtt_base_topic": state.config.mqtt_base_topic,
-            "mqtt_qos": state.config.mqtt_qos,
-            "mqtt_retain": state.config.mqtt_retain,
-            "mqtt_password_set": bool(state.config.mqtt_password),
-        })
-
-    @app.post("/api/mqtt/test")
-    async def api_mqtt_test(request: Request) -> JSONResponse:
-        """Teste la connexion MQTT (ping publish)."""
-        import copy as _copy
-        body = await _parse_llm_body(request)
-        test_cfg = _copy.copy(state.config)
-        if body.get("mqtt_host"):
-            test_cfg.mqtt_host = str(body["mqtt_host"])
-        if body.get("mqtt_port"):
-            try:
-                test_cfg.mqtt_port = int(body["mqtt_port"])
-            except (TypeError, ValueError):
-                pass
-        if body.get("mqtt_username") is not None:
-            test_cfg.mqtt_username = str(body["mqtt_username"])
-        if body.get("mqtt_password"):
-            test_cfg.mqtt_password = str(body["mqtt_password"])
-        if not test_cfg.mqtt_host:
-            return JSONResponse(
-                {"ok": False, "error": "Host broker non configuré."},
-                status_code=400,
-            )
-        from .mqtt_publisher import MQTTPublisher
-
-        # Connexion seule, sans enfant : publier un faux enfant créerait un appareil
-        # « Test » permanent dans HA (discovery retenue).
-        try:
-            pub = MQTTPublisher(test_cfg)
-            stats = pub.publish([], {})
-        except Exception as exc:  # noqa: BLE001
-            return JSONResponse(
-                {"ok": False, "error": f"Connexion broker : {exc}"},
-                status_code=400,
-            )
-        return JSONResponse({"ok": True, **(stats or {})})
 
     # ----------------------------------------------------------------
     # Configuration (cron, lookback, lookahead, auto_sync)

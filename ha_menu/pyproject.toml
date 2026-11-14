@@ -1,6 +1,6 @@
 [project]
 name = "ha_menu"
-version = "2.0.2"
+version = "3.0.0"
 description = "Menus de cantine So-Happy vers un agenda Home Assistant"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -16,12 +16,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-mqtt = [
-    # Client MQTT pour la publication Home Assistant (via EMQX).
-    # Import paresseux — sans paho-mqtt, la publication est juste
-    # désactivée sans casser le reste.
-    "paho-mqtt>=1.6.0",
-]
 scheduler = [
     "apscheduler>=3.10.0",
 ]

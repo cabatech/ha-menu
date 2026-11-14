@@ -16,7 +16,7 @@ Dessert), reformulée par un LLM (MiniMax) ou par un format local de secours.
    - **Identifiants So-Happy** : e-mail et mot de passe du compte parent, puis
      « Rafraîchir la liste depuis So-Happy » ;
    - **Enfants & agendas** : saisir l'entité agenda de chaque enfant, tester ;
-   - **Configuration** : cron de synchro (défaut `0 2 * * *`), LLM, MQTT.
+   - **Configuration** : cron de synchro (défaut `0 2 * * *`), LLM.
 
 ## Fonctionnement
 
@@ -28,8 +28,7 @@ Dessert), reformulée par un LLM (MiniMax) ou par un format local de secours.
 - Une modification de menu = suppression puis recréation de l'événement.
 - Les jours disparus de So-Happy ne sont supprimés que lors d'un ménage
   explicite (CLI `ha-menu sync`, sans `--no-delete`).
-- MQTT (optionnel) : capteurs « menu aujourd'hui / demain » par catégorie,
-  par MQTT discovery.
+- Entités et carte « Menu du jour » : intégration HA - Menu (voir le README du dépôt).
 
 La configuration est stockée dans `/data/config.json` (sauvegardée avec
 l'app).
@@ -38,7 +37,7 @@ l'app).
 
 ```bash
 uv venv .venv --python 3.12
-uv pip install --python .venv/bin/python -e ".[dev,scheduler,web,mqtt]"
+uv pip install --python .venv/bin/python -e ".[dev,scheduler,web]"
 .venv/bin/pytest -ra
 ```
 

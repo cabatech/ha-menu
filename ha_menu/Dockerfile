@@ -14,7 +14,7 @@ WORKDIR /app
 # README.md est OBLIGATOIRE : hatchling le lit depuis pyproject.toml (champ `readme`).
 COPY pyproject.toml uv.lock README.md ./
 RUN UV_PROJECT_ENVIRONMENT=/install uv sync --frozen --no-dev --no-install-project \
-      --extra scheduler --extra web --extra mqtt
+      --extra scheduler --extra web
 COPY src ./src
 RUN uv pip install --python /install --no-deps --quiet .
 

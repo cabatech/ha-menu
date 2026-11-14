@@ -139,3 +139,15 @@ def test_load_missing_llm_fields_uses_defaults(tmp_path: Path) -> None:
     assert loaded.use_llm_for_menus is False
     assert loaded.minimax_api_key == ""
     assert loaded.minimax_model  # default non-vide
+
+
+def test_old_mqtt_keys_ignored(tmp_path: Path) -> None:
+    """Un config.json de la v2 (clés MQTT) se charge en v3, sans garder le MQTT."""
+    import json
+
+    p = tmp_path / "config.json"
+    p.write_text(json.dumps({"use_mqtt": True, "mqtt_host": "broker", "mqtt_password": "x"}))
+    cfg = load(p)
+    assert not hasattr(cfg, "mqtt_host")
+    save(cfg, p)
+    assert "mqtt_password" not in json.loads(p.read_text())
