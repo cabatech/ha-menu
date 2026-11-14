@@ -1,0 +1,12 @@
+{
+  "domain": "ha_menu",
+  "name": "HA - Menu",
+  "codeowners": ["@cabatech"],
+  "config_flow": true,
+  "dependencies": ["frontend", "http"],
+  "documentation": "https://github.com/cabatech/ha-menu",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/cabatech/ha-menu/issues",
+  "requirements": [],
+  "version": "3.0.0"
+}
