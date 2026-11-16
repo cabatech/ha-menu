@@ -55,7 +55,8 @@ class HaMenuCard extends HTMLElement {
         body = head + `<div class="empty">Pas de cantine ${demain ? "demain" : "aujourd'hui"}</div>`;
       } else {
         const lines = (a.lignes || []).map((l) => `<div class="row">
-          <span class="label">${esc(l.label)}</span><span class="value">${esc(l.valeur)}</span></div>`).join("");
+          <span class="label">${esc(l.label)}</span><span class="value">${esc(l.valeur)}</span></div>`).join("")
+          || `<div class="empty">Menu non disponible</div>`;
         const warn = a.cantine === null ? `<div class="warn">inscription non vérifiée</div>` : "";
         body = head + lines + warn;
       }

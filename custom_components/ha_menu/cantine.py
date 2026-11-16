@@ -48,7 +48,12 @@ def inscription_pronote(state: str | None, lessons: list[dict] | None) -> bool |
     return any(x.get("is_morning") for x in active) and any(x.get("is_afternoon") for x in active)
 
 
-def cantine(has_menu: bool, inscription: bool | None) -> bool | None:
-    if not has_menu:
+def cantine(has_menu: bool, inscription: bool | None, *, checked: bool) -> bool | None:
+    """``checked`` : une source d'inscription est configurée.
+
+    Sans source, pas de menu = pas de cantine. Avec une source, c'est elle qui
+    décide : So-Happy peut publier des jours sans menu (menu non disponible).
+    """
+    if not has_menu and not checked:
         return False
     return inscription

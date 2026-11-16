@@ -53,8 +53,12 @@ def test_inscription_pronote():
 
 
 def test_cantine_rule():
-    assert cantine.cantine(False, True) is False
-    assert cantine.cantine(False, None) is False
-    assert cantine.cantine(True, None) is None
-    assert cantine.cantine(True, True) is True
-    assert cantine.cantine(True, False) is False
+    # Sans source d'inscription, l'absence de menu reste « pas de cantine ».
+    assert cantine.cantine(False, True, checked=False) is False
+    assert cantine.cantine(True, True, checked=False) is True
+    # Avec une source, un menu absent (So-Happy vide) ne veut pas dire pas de cantine.
+    assert cantine.cantine(False, True, checked=True) is True
+    assert cantine.cantine(False, None, checked=True) is None
+    assert cantine.cantine(False, False, checked=True) is False
+    assert cantine.cantine(True, None, checked=True) is None
+    assert cantine.cantine(True, False, checked=True) is False

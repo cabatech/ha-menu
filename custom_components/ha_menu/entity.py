@@ -92,7 +92,7 @@ class HaMenuChildEntity(CoordinatorEntity[HaMenuCoordinator]):
             inscription = logic.inscription_pronote(st, attrs.get("lessons"))
         else:
             inscription = True
-        return lines, logic.cantine(summary is not None, inscription)
+        return lines, logic.cantine(summary is not None, inscription, checked=source != SOURCE_NONE)
 
     @staticmethod
     def today() -> date:

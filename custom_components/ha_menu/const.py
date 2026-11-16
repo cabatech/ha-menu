@@ -3,7 +3,7 @@
 from datetime import timedelta
 
 DOMAIN = "ha_menu"
-VERSION = "3.0.1"
+VERSION = "3.0.2"
 DEFAULT_URL = "http://afb7d0ea-ha-menu:8237"
 DEFAULT_PORT = 8237
 SCAN_INTERVAL = timedelta(minutes=30)
