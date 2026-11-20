@@ -44,5 +44,11 @@ async def _async_reload(hass: HomeAssistant, entry: ConfigEntry) -> None:
     await hass.config_entries.async_reload(entry.entry_id)
 
 
+async def async_remove_config_entry_device(hass: HomeAssistant, entry: ConfigEntry, device) -> bool:
+    """Seul un enfant que l'app ne renvoie plus (identifiant So-Happy changé) se supprime."""
+    known = {f"child_{cid}" for cid in (entry.runtime_data.data or {})}
+    return any(d == DOMAIN and i.startswith("child_") and i not in known for d, i in device.identifiers)
+
+
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
